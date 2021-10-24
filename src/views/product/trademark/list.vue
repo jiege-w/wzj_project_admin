@@ -52,7 +52,7 @@
       </el-pagination>
     </div>
     <el-dialog :title="form.id ? '修改商品' : '添加商品' " :visible.sync="dialogFormVisible">
-      <el-form :model="form" :rules="rules" ref="form">
+      <el-form :model="form" :rules="rules" ref="form" style="width:80%">
         <el-form-item label="品牌名称" :label-width="formLabelWidth" prop="tmName">
           <el-input v-model="form.tmName" autocomplete="off"></el-input>
         </el-form-item>
