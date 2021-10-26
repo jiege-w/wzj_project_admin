@@ -11,12 +11,9 @@
       </el-select>
     </el-form-item>
     <el-form-item label="三级分类">
-      <el-select v-model="cForm.category3Id" placeholder="请选择">
+      <el-select v-model="cForm.category3Id" placeholder="请选择" @change="changeCategory3">
         <el-option v-for="(c3,index) in category3List" :label="c3.name" :value="c3.id"></el-option>
       </el-select>
-    </el-form-item>
-    <el-form-item>
-      <el-button type="primary" @click="onSubmit">查询</el-button>
     </el-form-item>
   </el-form>
 </template>
@@ -37,6 +34,7 @@ export default {
   },
   name: 'CategorySelect',
   methods: {
+    //获取一级类目列表
     async getCategory1List() {
       try {
         const { data, code } = await this.$API.category.getCategory1()
@@ -48,29 +46,35 @@ export default {
         console.log('error')
       }
     },
+    //当一级类目菜单发生改变时获取所选的一级类目的id，并传给父组件，获取二级类目
     async changeCategory1(category1Id) {
       this.cForm.category2Id = ''
       this.cForm.category3Id = ''
       this.cForm.category2List = []
       this.cForm.category3List = []
 
+      this.$emit("changeCategory",{categoryId:category1Id,level:1})
+
       const result = await this.$API.category.getCategory2(category1Id)
       if (result.code === 200) {
         this.category2List = result.data
-        console.log(this.category2List)
       }
     },
-    //
-    // try {
-    //   const data = await this.$API.category.getCategory2(category1Id)
-    // }catch (e){
-    //
-    // }
-    async changeCategory2() {
+    //当二级类目菜单发生改变时获取所选的二级类目的id，并传给父组件，获取三级类目
+    async changeCategory2(category2Id) {
+      this.cForm.category3Id = ''
+      this.cForm.category3List = []
 
+      this.$emit("changeCategory",{categoryId:category2Id,level:2})
+
+      const result = await this.$API.category.getCategory3(category2Id)
+      if (result.code === 200) {
+        this.category3List = result.data
+      }
     },
-    onSubmit() {
-      console.log('submit!')
+    //三级类目发生改变将所有信息传给父组件
+    changeCategory3(category3Id){
+      this.$emit("changeCategory",{categoryId:category3Id,level:3})
     }
   },
   mounted() {

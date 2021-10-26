@@ -10,6 +10,6 @@ export default {
     return request.get(`${api_name}/getCategory2/${category1Id}`, category1Id)
   },
   getCategory3(category2Id) {
-    return request.get(`${api_name}/getCategory2/${category2Id}`, category2Id)
+    return request.get(`${api_name}/getCategory3/${category2Id}`, category2Id)
   }
 }

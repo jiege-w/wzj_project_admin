@@ -23,6 +23,9 @@ import * as API from '@/api'
 
 Vue.prototype.$API = API
 
+import HintButton from '@/components/HintButton'
+Vue.component('HintButton', HintButton)
+
 /**
  * If you don't want to use mock-server
  * you want to use MockJs for mock api
