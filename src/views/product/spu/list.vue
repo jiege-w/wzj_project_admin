@@ -56,7 +56,7 @@
           >
         </el-pagination>
       </div>
-      <SpuForm v-show="isShowSpuForm">
+      <SpuForm v-show="isShowSpuForm" ref="spu" :visible.sync="isShowSpuForm">
       </SpuForm>
       <SkuForm v-show="isShowSkuForm">
       </SkuForm>
@@ -125,10 +125,14 @@ export default {
 
     showAddSpuForm() {
       this.showAddSpuForm = true
+
+      this.$refs.spu.initAddSpuFormDate(this.category3Id)
     },
 
     showUpdateSpuForm(row) {
       this.isShowSpuForm = true
+
+      this.$refs.spu.initUpdateSpuFormDate(row)
     },
 
     showAddSkuForm(row) {
