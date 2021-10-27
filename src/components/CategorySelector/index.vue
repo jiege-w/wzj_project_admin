@@ -1,5 +1,5 @@
 <template>
-  <el-form :inline="true" :model="cForm" class="demo-form-inline">
+  <el-form :disabled="!isShowList" :inline="true" :model="cForm" class="demo-form-inline">
     <el-form-item label="一级分类">
       <el-select v-model="cForm.category1Id" placeholder="请选择" @change="changeCategory1">
         <el-option v-for="(c1,index) in category1List" :label="c1.name" :value="c1.id"></el-option>
@@ -20,6 +20,8 @@
 
 <script>
 export default {
+
+  props:["isShowList"],
   data() {
     return {
       cForm: {
