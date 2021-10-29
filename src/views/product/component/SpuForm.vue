@@ -9,7 +9,8 @@
         <el-select v-model="spuForm.tmId" placeholder="请选择品牌">
           <el-option :label="tm.tmName" :value="tm.id"
                      :key="tm.id"
-                     v-for="(tm,index) in trademarkList"></el-option>
+                     v-for="tm in trademarkList"
+          ></el-option>
         </el-select>
       </el-form-item>
 
@@ -20,11 +21,13 @@
       </el-form-item>
 
       <el-form-item label="SPU图片">
-        <el-upload action="https://jsonplaceholder.typicode.com/posts/"
+        <el-upload action="dev-api/admin/product/fileUpload"
                    list-type="picture-card"
                    :file-list="spuImageList"
                    :on-preview="handlePictureCardPreview"
-                   :on-remove="handleRemove">
+                   :on-success="handleSuccess"
+                   :on-remove="handleRemove"
+        >
           <i class="el-icon-plus"></i>
         </el-upload>
         <el-dialog :visible.sync="dialogVisible">
@@ -40,15 +43,22 @@
       </el-form-item>
 
       <el-form-item label="销售属性">
-        <el-select v-model="spuForm.spuSaleAttrId" placeholder="unUsedSpuSaleAttrList.length > 0
+        <el-select v-model="spuSaleAttrIdName" :placeholder="unUsedSpuSaleAttrList.length > 0
           ? `还有${unUsedSpuSaleAttrList.length}未选择`
-          : `没有了`">
+          : `没有了`"
+        >
           <el-option :label="unUsedSpuSaleAttr.name"
-                     v-for="(unUsedSpuSaleAttr,index) in  unUsedSpuSaleAttrList"
+                     v-for="(unUsedSpuSaleAttr) in  unUsedSpuSaleAttrList"
                      :key="unUsedSpuSaleAttr.id"
-                     :value="unUsedSpuSaleAttr.id"></el-option>
+                     :value="`${unUsedSpuSaleAttr.id}:${unUsedSpuSaleAttr.name}`"
+          ></el-option>
         </el-select>
-        <el-button type="primary" icon="el-icon-plus">添加销售属性</el-button>
+        <el-button type="primary"
+                   @click="addSaleAttr"
+                   :disabled="!spuSaleAttrIdName"
+                   icon="el-icon-plus"
+        >添加销售属性
+        </el-button>
 
         <p/>
         <el-table :data="spuForm.spuSaleAttrList" border style="width:100%">
@@ -60,13 +70,16 @@
                            width="width"
           ></el-table-column>
           <el-table-column label="属性值名称列表"
-                           width="width">
+                           width="width"
+          >
             <template slot-scope="{row,$index}">
               <el-tag :key="spuSaleAttrValue.id"
                       closable
                       :disable-transitions="false"
-                      v-for="(spuSaleAttrValue,index) in row.spuSaleAttrValueList">
-                      {{spuSaleAttrValue.saleAttrValueName}}
+                      @close="row.spuSaleAttrList.splice(index,1)"
+                      v-for="(spuSaleAttrValue,index) in row.spuSaleAttrList"
+              >
+                {{ spuSaleAttrValue.saleAttrValueName }}
               </el-tag>
 
               <el-input
@@ -74,26 +87,50 @@
                 v-model="row.inputValue"
                 ref="saveTagInput"
                 size="small"
-                class="input-new-tag">
+                class="input-new-tag"
+                placeholder="名称"
+                @blur="handleInputConfirm(row)"
+                @keyup.enter.native="handleInputConfirm(row)"
+              >
               </el-input>
 
-              <el-button v-else class="button-new-tag" size="small"></el-button>
+              <el-button v-else class="button-new-tag"
+                         @click="showInput(row)"
+                         size="small"
+              >+ 添加
+              </el-button>
 
             </template>
           </el-table-column>
           <el-table-column label="操作"
-                           width="150">
+                           width="150"
+          >
             <template slot-scope="{row,$index}">
-              <HintButton type="danger" icon="el-icon-delete" size="mini" title="删除">
+              <el-popconfirm
+                @onconfirm="deleteSpu(row)"
 
-              </HintButton>
+                :title="`确定要删除${row.saleAttrName}吗？`"
+              >
+                <HintButton type="danger"
+                            slot="reference"
+                            icon="el-icon-delete"
+                            size="mini"
+                            title="删除"
+                >
+
+                </HintButton>
+              </el-popconfirm>
             </template>
           </el-table-column>
         </el-table>
         <p/>
 
-        <el-button type="primary">保存</el-button>
-        <el-button @click="$emit('update:visible',false)">取消</el-button>
+        <el-button
+          @click="save"
+          type="primary"
+        >保存
+        </el-button>
+        <el-button @click="cancel">取消</el-button>
 
       </el-form-item>
     </el-form>
@@ -114,24 +151,27 @@ export default {
         trademarkList: [],
         baseSaleAttrList: [],
         spuSaleAttrList: [],
-        spuSaleAttrId:''
+        spuSaleAttrId: ''
       },
       dialogImageUrl: '',
       dialogVisible: false,
-      spu:{},
+      spu: {},
 
       spSaleAttrId: '',
-      trademarkList:[],
-      spuImageList:[],
-      baseSaleAttrList:[],
-      spuSaleAttrIdName:''
+      trademarkList: [],
+      spuImageList: [],
+      baseSaleAttrList: [],
+      spuSaleAttrIdName: ''
       // 准备选择 select 之后收集销售id，
       // 但是最后是不是要这个id，还不一定，先假设是
     }
   },
   methods: {
     handleRemove(file, fileList) {
-      console.log(file, fileList)
+      this.spuImageList = fileList
+    },
+    handleSuccess(response, file, fileList) {
+      this.spuImageList = fileList
     },
     handlePictureCardPreview(file) {
       this.dialogImageUrl = file.url
@@ -139,12 +179,13 @@ export default {
     },
     //请求获取初始化数据
     async initUpdateSpuFormDate(spu) {
+      this.category3Id = spu.category3Id
       const { code, data } = await this.$API.spu.get(spu.id)
       if (code === 200) {
         this.spuForm = data
       }
 
-      const {imgcode,data:imgdata} = await this.$API.sku.getSpuImageList(spu.id)
+      const { code: imgcode, data: imgdata } = await this.$API.sku.getSpuImageList(spu.id)
       if (imgcode === 200) {
 
         let spuImageList = imgdata
@@ -155,38 +196,127 @@ export default {
           item.url = item.imgUrl
         })
 
-
         this.spuImageList = imgdata
       }
 
-      const {trademarkCode,data:tradeData} = await this.$API.trademark.getList()
-      if (trademarkCode ===200) {
+      const { code: trademarkCode, data: tradeData } = await this.$API.trademark.getList()
+
+      if (trademarkCode === 200) {
         this.trademarkList = tradeData
       }
 
-      const {baseSaleAttrCode,data:baseSaleAttrData} = await this.$API.spu.getSaleAttrList()
-      if (baseSaleAttrCode ===200) {
+      const { code: baseSaleAttrCode, data: baseSaleAttrData } = await this.$API.spu.getSaleAttrList()
+      if (baseSaleAttrCode === 200) {
         this.baseSaleAttrList = baseSaleAttrData
       }
     },
-    async initAddSpuFormDate() {
-      const {trademarkCode,data:trademarkData} = await this.$API.trademark.getList()
+    async initAddSpuFormDate(category3Id) {
+      this.spuForm.category3Id = category3Id
+      const { code: trademarkCode, data: trademarkData } = await this.$API.trademark.getList()
       if (trademarkCode === 200) {
         this.trademarkList = trademarkData
       }
 
-      const {baseSaleAttrCode,data:baseSaleAttrData} = await this.$API.spu.getSaleAttrList()
+      const { code: baseSaleAttrCode, data: baseSaleAttrData } = await this.$API.spu.getSaleAttrList()
       if (baseSaleAttrCode === 200) {
         this.baseSaleAttrList = baseSaleAttrData
       }
 
+    },
+    addSaleAttr() {
+      let [baseSaleAttrId, saleAttrName] = this.spuSaleAttrIdName.split(':')
+
+      let obj = {
+        baseSaleAttrId,
+        saleAttrName,
+        spuSaleAttrList: []
+      }
+      this.spuForm.spuSaleAttrList.push(obj)
+      this.spuSaleAttrIdName = ''
+    },
+    showInput(row) {
+      this.$set(row, 'inputVisible', true)
+
+      this.$nextTick(() => {
+        this.$refs.saveTagInput.focus()
+      })
+    },
+    handleInputConfirm(row) {
+      console.log(row)
+      let saleAttrValueName = row.inputValue
+      let baseSaleAttrId = row.baseSaleAttrId
+
+      if (saleAttrValueName.trim() === '') {
+        row.inputValue = ''
+        return
+      }
+
+      let isRepeat = row.spuSaleAttrList.some(item => item.saleAttrValueName === saleAttrValueName)
+
+      if (isRepeat) {
+        this.$message.info('输入的属性名称不能重复')
+        row.inputValue = ''
+        return
+      }
+      let obj = {
+        saleAttrValueName,
+        baseSaleAttrId
+      }
+      row.spuSaleAttrList.push(obj)
+      row.inputValue = ''
+      row.inputVisible = false
+    },
+    async save() {
+      let { spuForm, spuImageList } = this
+      spuForm.spuImageList = spuImageList.map(item => {
+        return {
+          imgName: item.name,
+          imgUrl: item.imgUrl || item.response.data
+        }
+      })
+
+      spuForm.spuSaleAttrList.forEach((item) => {
+        delete item.inputVisible
+        delete item.inputValue
+      })
+
+      try {
+        await this.$API.spu.addUpdate(spuForm)
+
+        this.$message.success('保存成功')
+        this.$emit('update:visible', false)
+        this.$emit('successBack')
+
+        Object.assign(this.$data, this.$options.data())
+
+      } catch (e) {
+        this.$message.error('操作失败')
+        console.log(e)
+      }
+    },
+    cancel() {
+      this.$emit('update:visible', false)
+      this.$emit('cancelBack')
+      Object.assign(this.$data, this.$options.data())
+    },
+    async deleteSpu(row) {
+      try {
+        await this.$API.spu.remove(row.id)
+
+        // 1.提示
+        this.$message.success('删除成功')
+        // 2.重新获取列表数据
+        this.getSpuList(this.spuList.length > 1 ? this.page : this.page - 1)
+      } catch (error) {
+        this.$message.error('删除失败')
+      }
     }
   },
-  computed:{
+  computed: {
     unUsedSpuSaleAttrList() {
-      return this.baseSaleAttrList.filter(baseSaleAttr => {
-        this.spuForm.spuSaleAttrList.every(spuSaleAttr => baseSaleAttr.name !== spuSaleAttr.saleAttr.name)
-      })
+      return this.baseSaleAttrList.filter(baseSaleAttr =>
+        this.spuForm.spuSaleAttrList.every(spuSaleAttr => baseSaleAttr.name !== spuSaleAttr.saleAttrName)
+      )
     }
   }
 }
