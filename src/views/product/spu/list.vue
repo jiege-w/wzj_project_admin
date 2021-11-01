@@ -64,7 +64,7 @@
                @cancelBack="cancelBack"
                :visible.sync="isShowSpuForm">
       </SpuForm>
-      <SkuForm v-show="isShowSkuForm">
+      <SkuForm v-show="isShowSkuForm" ref="sku" :visible.sync="isShowSkuForm">
       </SkuForm>
     </el-card>
 
@@ -144,6 +144,7 @@ export default {
 
     showAddSkuForm(row) {
       this.isShowSkuForm = true
+      this.$refs.sku.initAddSkuFormData(row,this.category1Id,this.category2Id)
     },
     successBack() {
       if (this.flag) {
